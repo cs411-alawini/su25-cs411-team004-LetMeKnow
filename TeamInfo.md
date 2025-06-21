@@ -12,8 +12,8 @@
 | Member1     |  vyare2@illinois.edu   |
 | Member2     |       Sahil Sarangi    |
 | Member2     |  sarangi4@illinois.edu |
-| Member3     |       Roberts Fulls    |
-| Member3     |  rfulls2@illinois.edu  |
+| Member3     |       Roberts Fulss    |
+| Member3     |  rfulss2@illinois.edu  |
 
 ## Project Information
 
