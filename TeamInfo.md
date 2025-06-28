@@ -19,10 +19,12 @@
 
 |   Info      |        Description     |
 | ----------- | ---------------------- |
-|  Title      |       ProjectTitle     |
+|  Title      |       UrbanBird     |
 | System URL  |      link_to_system    |
 | Video Link  |      link_to_video     |
 
 ## Project Summary
 
-This is a summary of the project!
+UrbanBird is a community-driven web platform that captures, aggregates, and visualises bird-sighting data in densely populated cities. By merging crowdsourced observations with authoritative ornithology datasets, the site reveals how avian species adapt to—and sometimes struggle in—urban habitats.
+
+The application helps casual birders discover local “hot spots,” assists researchers tracking biodiversity trends, and gives city planners evidence for bird-friendly green-space design.
