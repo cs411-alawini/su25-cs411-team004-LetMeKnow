@@ -147,9 +147,8 @@
       })
       .then(response => response.json())
       .then(data => {
-        console.log(data);
         if (data.success) {
-          alert('Sign in successful! Welcome, ' + data.user.user_id);
+         window.location.href = `/home/?username=${encodeURIComponent(data.user.user_id)}`;
         } else {
           alert('Sign in failed: ' + data.message);
         }
@@ -179,12 +178,21 @@
         method: 'POST',
         body: formData
       })
-      .then(response => response.text())
-      .then(data => {
+     .then(response => {
+    if (!response.ok) {
+        return response.text().then(errorMsg => {
+        alert("Sign up failed: " + errorMsg);
+        throw new Error(errorMsg);
+        });
+    }
+    return response.text();
+    })
+    .then(data => {
         alert('Sign up successful! You can now sign in.');
         signUpModal.style.display = 'none';
         signUpForm.reset();
-      })
+    })
+
       .catch(error => {
         console.error('Error:', error);
         alert('An error occurred during sign up');

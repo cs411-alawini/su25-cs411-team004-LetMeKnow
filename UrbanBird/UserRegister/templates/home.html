@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+    }
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+    }
+    .tab {
+      padding: 10px 20px;
+      border: 1px solid #ccc;
+      border-bottom: none;
+      margin-right: 5px;
+      cursor: pointer;
+      background-color: #eee;
+    }
+    .tab.active {
+      background-color: white;
+      border-top: 2px solid #007bff;
+      font-weight: bold;
+    }
+    .tab-content {
+      border: 1px solid #ccc;
+      padding: 20px;
+      background-color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <h1 id="welcome">Welcome!</h1>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab(1)">Tab 1</div>
+    <div class="tab" onclick="showTab(2)">Tab 2</div>
+    <div class="tab" onclick="showTab(3)">Tab 3</div>
+  </div>
+
+  <div class="tab-content" id="tab-content">
+    This is Tab 1 content.
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    console.log('url params', urlParams);
+    const username = urlParams.get('username');
+    document.getElementById('welcome').textContent = `Welcome ${username}!`;
+
+    function showTab(tabNum) {
+      const content = {
+        1: "This is Tab 1 content.",
+        2: "This is Tab 2 content.",
+        3: "This is Tab 3 content."
+      };
+      document.getElementById('tab-content').textContent = content[tabNum];
+
+      document.querySelectorAll('.tab').forEach((tab, index) => {
+        tab.classList.toggle('active', index === tabNum - 1);
+      });
+    }
+  </script>
+
+</body>
+</html>

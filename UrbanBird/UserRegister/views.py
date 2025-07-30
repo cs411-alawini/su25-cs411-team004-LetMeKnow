@@ -4,18 +4,25 @@ from django.db import connection
 from django.views.decorators.csrf import csrf_exempt
 import json
 
+
+def home_view(request):
+    return render(request, 'home.html')
+
 def index(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
         email = request.POST.get('email')
-        
+        print('username', username)
+        print('password', password)
+        print(email)
         if username and password and email:
             try:
                 cursor = connection.cursor()
-                cursor.execute("SELECT * FROM USER WHERE user_id = %s AND password LIKE %s", (username, password + '%'))
+                cursor.execute("SELECT * FROM USER WHERE user_id = %s OR email = %s", (username, email))
                 existing_user = cursor.fetchone()
-                
+                print("existing_user:", existing_user)
+
                 if existing_user:
                     return HttpResponse("User already exists with this username or email", status=400)
                 
@@ -48,7 +55,7 @@ def signin(request):
                 }, status=400)
             
             cursor = connection.cursor()
-            cursor.execute("SELECT * FROM USER WHERE user_id = %s AND password LIKE %s", (username, password + '%'))
+            cursor.execute("SELECT * FROM USER WHERE user_id = %s AND password LIKE %s", (username, password))
             user = cursor.fetchone()
             
             if user:
