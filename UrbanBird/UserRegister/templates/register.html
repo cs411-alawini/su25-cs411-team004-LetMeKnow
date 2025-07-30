@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In / Sign Up</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+    }
+    .container {
+      text-align: center;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      overflow: auto;
+    }
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 5px;
+      width: 300px;
+      margin: 100px auto;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .input-field {
+      margin-bottom: 10px;
+      width: 100%;
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .input-field:focus {
+      border-color: #007bff;
+    }
+    .form-button {
+      width: 100%;
+      padding: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .form-button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+    {% csrf_token %}
+
+  <div class="container">
+    <h2>Sign In</h2>
+    <form id="signInForm">
+      <input type="text" id="signInUsername" class="input-field" placeholder="Enter username" required><br>
+      <input type="password" id="signInPassword" class="input-field" placeholder="Enter password" required><br>
+      <button type="submit" class="form-button">Sign In</button>
+    </form>
+    <br>
+    <button id="signUpBtn">Sign Up</button>
+  </div>
+
+  <div id="signUpModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeModalBtn">&times;</span>
+      <h2>Sign Up</h2>
+      <form id="signUpForm">
+        {% csrf_token %}
+        <input type="text" id="username" class="input-field" placeholder="Enter username" required><br>
+        <input type="email" id="email" class="input-field" placeholder="Enter email" required><br>
+        <input type="password" id="password" class="input-field" placeholder="Enter password" required><br>
+        <button type="submit" class="form-button">Sign Up</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const signUpModal = document.getElementById("signUpModal");
+    const signUpBtn = document.getElementById("signUpBtn");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+
+    signUpBtn.onclick = function() {
+      signUpModal.style.display = "block";
+    }
+
+
+    closeModalBtn.onclick = function() {
+      signUpModal.style.display = "none";
+    }
+
+    window.onclick = function(event) {
+      if (event.target === signUpModal) {
+        signUpModal.style.display = "none";
+      }
+    }
+
+
+    const signInForm = document.getElementById('signInForm');
+    signInForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+      const username = document.getElementById('signInUsername').value;
+      const password = document.getElementById('signInPassword').value;
+      
+      fetch('/signin/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username,
+          password: password
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log(data);
+        if (data.success) {
+          alert('Sign in successful! Welcome, ' + data.user.user_id);
+        } else {
+          alert('Sign in failed: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred during sign in');
+      });
+    });
+
+    const signUpForm = document.getElementById('signUpForm');
+    signUpForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+      const username = document.getElementById('username').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      
+      const formData = new FormData();
+      formData.append('username', username);
+      formData.append('email', email);
+      formData.append('password', password);
+      formData.append('csrfmiddlewaretoken', csrfToken);
+      
+      fetch('/', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.text())
+      .then(data => {
+        alert('Sign up successful! You can now sign in.');
+        signUpModal.style.display = 'none';
+        signUpForm.reset();
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred during sign up');
+      });
+    });
+  </script>
+
+</body>
+</html>
