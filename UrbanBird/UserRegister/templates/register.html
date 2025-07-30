@@ -2,28 +2,51 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sign In / Sign Up</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Poppins', sans-serif;
       margin: 0;
       padding: 0;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
-      background-color: #f0f0f0;
+      background: linear-gradient(to right, #e1f5fe, #f1f8e9);
+      color: #333;
     }
+
     .container {
+      background-color: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
       text-align: center;
     }
+
+    h2 {
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+
     button {
-      padding: 10px 20px;
+      padding: 10px 24px;
       font-size: 16px;
       cursor: pointer;
-      margin: 10px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 6px;
+      background-color: #007bff;
+      color: white;
+      transition: background-color 0.3s;
     }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
     .modal {
       display: none;
       position: fixed;
@@ -32,57 +55,68 @@
       top: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.4);
     }
+
     .modal-content {
       background-color: white;
-      padding: 20px;
-      border-radius: 5px;
-      width: 300px;
+      padding: 30px;
+      border-radius: 12px;
+      width: 320px;
       margin: 100px auto;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      position: relative;
     }
+
     .close {
-      color: #aaa;
-      float: right;
+      position: absolute;
+      right: 16px;
+      top: 12px;
       font-size: 28px;
       font-weight: bold;
-    }
-    .close:hover,
-    .close:focus {
-      color: black;
-      text-decoration: none;
+      color: #aaa;
       cursor: pointer;
     }
-    .input-field {
-      margin-bottom: 10px;
-      width: 100%;
-      padding: 8px;
-      font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+
+    .close:hover {
+      color: black;
     }
+
+    .input-field {
+      width: 100%;
+      margin-bottom: 15px;
+      padding: 10px;
+      font-size: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
     .input-field:focus {
       border-color: #007bff;
+      outline: none;
     }
+
     .form-button {
       width: 100%;
       padding: 10px;
-      background-color: #007bff;
+      background-color: #28a745;
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
       font-size: 16px;
       cursor: pointer;
+      transition: background-color 0.3s;
     }
+
     .form-button:hover {
-      background-color: #0056b3;
+      background-color: #218838;
     }
   </style>
 </head>
 <body>
-    {% csrf_token %}
 
+  {% csrf_token %}
   <div class="container">
     <h2>Sign In</h2>
     <form id="signInForm">
@@ -90,14 +124,14 @@
       <input type="password" id="signInPassword" class="input-field" placeholder="Enter password" required><br>
       <button type="submit" class="form-button">Sign In</button>
     </form>
-    <br>
+    <p style="margin-top: 20px;">Don't have an account?</p>
     <button id="signUpBtn">Sign Up</button>
   </div>
 
   <div id="signUpModal" class="modal">
     <div class="modal-content">
       <span class="close" id="closeModalBtn">&times;</span>
-      <h2>Sign Up</h2>
+      <h2>Create an Account</h2>
       <form id="signUpForm">
         {% csrf_token %}
         <input type="text" id="username" class="input-field" placeholder="Enter username" required><br>
@@ -113,21 +147,9 @@
     const signUpBtn = document.getElementById("signUpBtn");
     const closeModalBtn = document.getElementById("closeModalBtn");
 
-    signUpBtn.onclick = function() {
-      signUpModal.style.display = "block";
-    }
-
-
-    closeModalBtn.onclick = function() {
-      signUpModal.style.display = "none";
-    }
-
-    window.onclick = function(event) {
-      if (event.target === signUpModal) {
-        signUpModal.style.display = "none";
-      }
-    }
-
+    signUpBtn.onclick = () => signUpModal.style.display = "block";
+    closeModalBtn.onclick = () => signUpModal.style.display = "none";
+    window.onclick = e => { if (e.target === signUpModal) signUpModal.style.display = "none"; };
 
     const signInForm = document.getElementById('signInForm');
     signInForm.addEventListener('submit', function(event) {
@@ -140,15 +162,12 @@
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          username: username,
-          password: password
-        })
+        body: JSON.stringify({ username, password })
       })
       .then(response => response.json())
       .then(data => {
         if (data.success) {
-         window.location.href = `/home/?username=${encodeURIComponent(data.user.user_id)}`;
+          window.location.href = `/home/?username=${encodeURIComponent(data.user.user_id)}`;
         } else {
           alert('Sign in failed: ' + data.message);
         }
@@ -165,34 +184,32 @@
       const username = document.getElementById('username').value;
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-      
       const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-      
+
       const formData = new FormData();
       formData.append('username', username);
       formData.append('email', email);
       formData.append('password', password);
       formData.append('csrfmiddlewaretoken', csrfToken);
-      
+
       fetch('/', {
         method: 'POST',
         body: formData
       })
-     .then(response => {
-    if (!response.ok) {
-        return response.text().then(errorMsg => {
-        alert("Sign up failed: " + errorMsg);
-        throw new Error(errorMsg);
-        });
-    }
-    return response.text();
-    })
-    .then(data => {
+      .then(response => {
+        if (!response.ok) {
+          return response.text().then(errorMsg => {
+            alert("Sign up failed: " + errorMsg);
+            throw new Error(errorMsg);
+          });
+        }
+        return response.text();
+      })
+      .then(data => {
         alert('Sign up successful! You can now sign in.');
         signUpModal.style.display = 'none';
         signUpForm.reset();
-    })
-
+      })
       .catch(error => {
         console.error('Error:', error);
         alert('An error occurred during sign up');
