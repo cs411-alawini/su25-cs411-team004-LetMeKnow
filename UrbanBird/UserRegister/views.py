@@ -4,6 +4,33 @@ from django.db import connection
 from django.views.decorators.csrf import csrf_exempt
 import json
 
+def get_bird_stats(request):
+    region = request.GET.get("region", "")
+    if not region:
+        return HttpResponse("Region parameter is required", status=400)
+
+    try:
+        cursor = connection.cursor()
+        cursor.execute(f"CALL GetBirdStatsByRegion(%s)", [region])
+        unique_result = cursor.fetchone()
+        unique_species = unique_result[0] if unique_result else 0
+        cursor.nextset()
+        freq_result = cursor.fetchone()
+        most_frequent = {
+            "species_id": freq_result[0],
+            "sightings": freq_result[1]
+        } if freq_result else {
+            "species_id": None,
+            "sightings": 0
+        }
+
+        return JsonResponse({
+            "unique_species": unique_species,
+            "most_frequent_species": most_frequent
+        }, status=200)
+
+    except Exception as e:
+        return HttpResponse(f"Error retrieving bird stats: {str(e)}", status=500)
 
 def home_view(request):
     return render(request, 'home.html')
@@ -13,9 +40,6 @@ def index(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         email = request.POST.get('email')
-        print('username', username)
-        print('password', password)
-        print(email)
         if username and password and email:
             try:
                 cursor = connection.cursor()

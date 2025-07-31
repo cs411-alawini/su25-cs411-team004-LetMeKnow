@@ -47,14 +47,14 @@
     }
 
     .tab-content {
-      max-width: 700px;
+      max-width: "100%";
       margin: 0 auto;
       border-radius: 0 0 12px 12px;
       background-color: #ffffff;
       padding: 30px;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
       font-size: 18px;
-      min-height: 150px;
+      min-height: 400px;
     }
   </style>
 </head>
@@ -63,32 +63,91 @@
   <h1 id="welcome">Welcome!</h1>
 
   <div class="tabs">
-    <div class="tab active" onclick="showTab(1)">Map</div>
+    <div class="tab active" onclick="showTab(1)">Stats Explorer</div>
     <div class="tab" onclick="showTab(2)">Add Sighting</div>
     <div class="tab" onclick="showTab(3)">User Info</div>
+    <div class="tab" onclick="showTab(4)">Map</div>
   </div>
 
-  <div class="tab-content" id="tab-content">
-    This is Tab 1 content.
+<div class="tab-content" id="tab-content">
+  <div id="map-tab-content">
+    <h3>Bird Stats Explorer</h3>
+    <label for="regionSelect"><strong>Select a locality:</strong></label>
+    <select id="regionSelect">
+      <option value="">-- Choose a locality --</option>
+      <option value="Anahuac National Wildlife Refuge (TX)">Anahuac National Wildlife Refuge (TX)</option>
+      <option value="Chicago">Chicago</option>
+      <option value="High Island">High Island</option>
+      <!-- Add more options here or populate via JS later -->
+    </select>
+    <button onclick="fetchBirdStats()">Show Facts</button>
+
+    <div id="bird-stats-display" style="margin-top: 20px;"></div>
   </div>
+</div>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const username = urlParams.get('username') || 'Guest';
     document.getElementById('welcome').textContent = `Welcome ${username}!`;
 
-    function showTab(tabNum) {
-      const content = {
-        1: "This is Tab 1 content.",
-        2: "This is Tab 2 content.",
-        3: "This is Tab 3 content."
-      };
-      document.getElementById('tab-content').textContent = content[tabNum];
+ function showTab(tabNum) {
+  document.querySelectorAll('.tab').forEach((tab, index) => {
+    tab.classList.toggle('active', index === tabNum - 1);
+  });
 
-      document.querySelectorAll('.tab').forEach((tab, index) => {
-        tab.classList.toggle('active', index === tabNum - 1);
-      });
-    }
+  const tabContent = document.getElementById('tab-content');
+
+  if (tabNum === 1) {
+    tabContent.innerHTML = `
+      <div>
+        <h3>Bird Stats Explorer</h3>
+        <label for="regionSelect"><strong>Select a locality:</strong></label>
+        <select id="regionSelect">
+          <option value="">-- Choose a locality --</option>
+          <option value="Anahuac National Wildlife Refuge (TX)">Anahuac National Wildlife Refuge (TX)</option>
+          <option value="Chicago">Chicago</option>
+          <option value="High Island">High Island</option>
+          <!-- Add more options here -->
+        </select>
+        <button onclick="fetchBirdStats()">Show Facts</button>
+        <div id="bird-stats-display" style="margin-top: 20px;"></div>
+      </div>
+    `;
+  } else {
+    const content = {
+      2: "This is Tab 2 content.",
+      3: "This is Tab 3 content.",
+      4: "This is Tab 4 content"
+    };
+    tabContent.textContent = content[tabNum];
+  }
+}
+
+
+function fetchBirdStats() {
+  const region = document.getElementById('regionSelect').value;
+  const displayDiv = document.getElementById('bird-stats-display');
+  if (!region) {
+    displayDiv.innerHTML = `<p style="color:red;">Please select a locality.</p>`;
+    return;
+  }
+
+  fetch(`/api/bird-stats?region=${encodeURIComponent(region)}`)
+    .then(res => res.json())
+    .then(data => {
+      displayDiv.innerHTML = `
+        <h4>Stats for: ${region}</h4>
+        <p><strong>Unique species:</strong> ${data.unique_species}</p>
+        <p><strong>Most frequent species ID:</strong> ${data.most_frequent_species.species_id}</p>
+        <p><strong>Sightings:</strong> ${data.most_frequent_species.sightings}</p>
+      `;
+    })
+    .catch(err => {
+      displayDiv.innerHTML = `<p style="color:red;">Failed to fetch stats.</p>`;
+    });
+}
+
   </script>
 
 </body>
