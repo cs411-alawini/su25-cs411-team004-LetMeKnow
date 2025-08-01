@@ -47,7 +47,7 @@
     }
 
     .tab-content {
-      max-width: "100%";
+      max-width: 100%;
       margin: 0 auto;
       border-radius: 0 0 12px 12px;
       background-color: #ffffff;
@@ -69,85 +69,120 @@
     <div class="tab" onclick="showTab(4)">Map</div>
   </div>
 
-<div class="tab-content" id="tab-content">
-  <div id="map-tab-content">
-    <h3>Bird Stats Explorer</h3>
-    <label for="regionSelect"><strong>Select a locality:</strong></label>
-    <select id="regionSelect">
-      <option value="">-- Choose a locality --</option>
-      <option value="Anahuac National Wildlife Refuge (TX)">Anahuac National Wildlife Refuge (TX)</option>
-      <option value="Chicago">Chicago</option>
-      <option value="High Island">High Island</option>
-      <!-- Add more options here or populate via JS later -->
-    </select>
-    <button onclick="fetchBirdStats()">Show Facts</button>
-
-    <div id="bird-stats-display" style="margin-top: 20px;"></div>
+  <div class="tab-content" id="tab-content">
+    <!-- Tab content dynamically loaded here -->
   </div>
-</div>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const username = urlParams.get('username') || 'Guest';
     document.getElementById('welcome').textContent = `Welcome ${username}!`;
 
- function showTab(tabNum) {
-  document.querySelectorAll('.tab').forEach((tab, index) => {
-    tab.classList.toggle('active', index === tabNum - 1);
-  });
+    function showTab(tabNum) {
+      document.querySelectorAll('.tab').forEach((tab, index) => {
+        tab.classList.toggle('active', index === tabNum - 1);
+      });
 
-  const tabContent = document.getElementById('tab-content');
+      const tabContent = document.getElementById('tab-content');
 
-  if (tabNum === 1) {
-    tabContent.innerHTML = `
-      <div>
-        <h3>Bird Stats Explorer</h3>
-        <label for="regionSelect"><strong>Select a locality:</strong></label>
-        <select id="regionSelect">
-          <option value="">-- Choose a locality --</option>
-          <option value="Anahuac National Wildlife Refuge (TX)">Anahuac National Wildlife Refuge (TX)</option>
-          <option value="Chicago">Chicago</option>
-          <option value="High Island">High Island</option>
-          <!-- Add more options here -->
-        </select>
-        <button onclick="fetchBirdStats()">Show Facts</button>
-        <div id="bird-stats-display" style="margin-top: 20px;"></div>
-      </div>
-    `;
-  } else {
-    const content = {
-      2: "This is Tab 2 content.",
-      3: "This is Tab 3 content.",
-      4: "This is Tab 4 content"
-    };
-    tabContent.textContent = content[tabNum];
-  }
-}
+      if (tabNum === 1) {
+        fetch('/partial/stats-explorer/')
+          .then(res => res.text())
+          .then(html => {
+            tabContent.innerHTML = html;
+            populateLocalities();
+          });
+      } else {
+        const content = {
+          2: "This is Tab 2 content.",
+          3: "This is Tab 3 content.",
+          4: "This is Tab 4 content."
+        };
+        tabContent.textContent = content[tabNum];
+      }
+    }
 
+    function fetchSpeciesOverlap() {
+      const locA = document.getElementById('overlapLocA').value;
+      const locB = document.getElementById('overlapLocB').value;
+      const displayDiv = document.getElementById('species-overlap-display');
 
-function fetchBirdStats() {
-  const region = document.getElementById('regionSelect').value;
-  const displayDiv = document.getElementById('bird-stats-display');
-  if (!region) {
-    displayDiv.innerHTML = `<p style="color:red;">Please select a locality.</p>`;
-    return;
-  }
+      if (!locA || !locB) {
+        displayDiv.innerHTML = `<p style="color:red;">Please select both locations.</p>`;
+        return;
+      }
 
-  fetch(`/api/bird-stats?region=${encodeURIComponent(region)}`)
-    .then(res => res.json())
-    .then(data => {
-      displayDiv.innerHTML = `
-        <h4>Stats for: ${region}</h4>
-        <p><strong>Unique species:</strong> ${data.unique_species}</p>
-        <p><strong>Most frequent species ID:</strong> ${data.most_frequent_species.species_id}</p>
-        <p><strong>Sightings:</strong> ${data.most_frequent_species.sightings}</p>
-      `;
-    })
-    .catch(err => {
-      displayDiv.innerHTML = `<p style="color:red;">Failed to fetch stats.</p>`;
+      fetch(`/api/species-overlap?locA=${encodeURIComponent(locA)}&locB=${encodeURIComponent(locB)}`)
+        .then(res => res.json())
+        .then(data => {
+          let speciesListHTML = "<ul>";
+          data.species.forEach(species => {
+            speciesListHTML += `<li>${species}</li>`;
+          });
+          speciesListHTML += "</ul>";
+
+          displayDiv.innerHTML = `
+            <h4>Overlapping Species</h4>
+            <p><strong>Overlap count:</strong> ${data.count}</p>
+            ${speciesListHTML}
+          `;
+        })
+        .catch(err => {
+          displayDiv.innerHTML = `<p style="color:red;">Failed to fetch overlap info.</p>`;
+        });
+    }
+
+    function populateLocalities() {
+      fetch('/api/localities/')
+        .then(res => res.json())
+        .then(data => {
+          const localities = data.localities || [];
+          const selects = [
+            document.getElementById('regionSelect'),
+            document.getElementById('overlapLocA'),
+            document.getElementById('overlapLocB')
+          ];
+
+          selects.forEach(select => {
+            select.innerHTML = '<option value="">-- Choose a locality --</option>';
+            localities.forEach(loc => {
+              const option = document.createElement('option');
+              option.value = loc;
+              option.textContent = loc;
+              select.appendChild(option);
+            });
+          });
+        })
+        .catch(err => {
+          console.error('Failed to fetch localities:', err);
+        });
+    }
+
+    function fetchBirdStats() {
+      const region = document.getElementById('regionSelect').value;
+      const displayDiv = document.getElementById('bird-stats-display');
+      if (!region) {
+        displayDiv.innerHTML = `<p style="color:red;">Please select a locality.</p>`;
+        return;
+      }
+
+      fetch(`/api/bird-stats?region=${encodeURIComponent(region)}`)
+        .then(res => res.json())
+        .then(data => {
+          displayDiv.innerHTML = `
+            <h4>Stats for: ${region}</h4>
+            <p><strong>Unique species:</strong> ${data.unique_species}</p>
+            <p><strong>Most frequent species ID:</strong> ${data.most_frequent_species.species_id}</p>
+            <p><strong>Sightings:</strong> ${data.most_frequent_species.sightings}</p>
+          `;
+        })
+        .catch(err => {
+          displayDiv.innerHTML = `<p style="color:red;">Failed to fetch stats.</p>`;
+        });
+    }
+    document.addEventListener("DOMContentLoaded", () => {
+      showTab(1);
     });
-}
-
   </script>
 
 </body>
