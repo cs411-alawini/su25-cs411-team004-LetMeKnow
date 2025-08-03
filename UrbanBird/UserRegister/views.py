@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
-from django.db import connection
+from django.db import connection, transaction
 from django.views.decorators.csrf import csrf_exempt
 import json
 
@@ -153,7 +153,7 @@ def signin(request):
         'success': False,
         'message': 'Only POST method is allowed'
     }, status=405)
-
+@transaction.atomic
 def user_info(request):
     user_id = request.GET.get('user_id')
     if not user_id:
