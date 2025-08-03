@@ -123,7 +123,6 @@ def signin(request):
             if user:
                 columns = [col[0] for col in cursor.description]
                 user_dict = dict(zip(columns, user))
-                print(user_dict.get('user_id'))
                 return JsonResponse({
                     'success': True,
                     'message': 'Sign in successful!',
@@ -154,5 +153,35 @@ def signin(request):
         'success': False,
         'message': 'Only POST method is allowed'
     }, status=405)
-   
+
+def user_info(request):
+    user_id = request.GET.get('user_id')
+    if not user_id:
+        return HttpResponse("User ID parameter is required", status=400)
+
+    try:
+        cursor = connection.cursor()
+        cursor.execute("CALL user_summary_and_leaderboard(%s)", [user_id])
+        user_summary = cursor.fetchone()
+        cursor.nextset()
+        leaderboard = cursor.fetchall()
+
+        user_data = {
+            'user_id': user_summary[0],
+            'total_sightings': user_summary[1],
+            'total_species_seen': user_summary[2],
+            'total_localities': user_summary[3]
+        }
+
+        leaderboard_data = []
+        for row in leaderboard:
+            leaderboard_data.append({
+                'user_id': row[0],
+                'total_sightings': row[1]
+            })
+
+        return render(request, 'userInfo.html', {'user_data': user_data, 'leaderboard_data': leaderboard_data})
+
+    except Exception as e:
+        return HttpResponse("Error retrieving user info! Please add a few sightings and try again.", status=500)
 

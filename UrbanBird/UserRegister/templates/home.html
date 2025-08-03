@@ -65,7 +65,7 @@
   <div class="tabs">
     <div class="tab active" onclick="showTab(1)">Stats Explorer</div>
     <div class="tab" onclick="showTab(2)">Add Sighting</div>
-    <div class="tab" onclick="showTab(3)">User Info</div>
+    <div class="tab" onclick="showTab(3)">User Info - Leaderboard</div>
     <div class="tab" onclick="showTab(4)">Map</div>
   </div>
 
@@ -92,7 +92,14 @@
             tabContent.innerHTML = html;
             populateLocalities();
           });
-      } else {
+      } else if (tabNum == 3){
+        fetch('/user_info/?user_id=' + username)
+          .then(res => res.text())
+          .then(html => {
+            tabContent.innerHTML = html;
+          });
+      }
+      else {
         const content = {
           2: "This is Tab 2 content.",
           3: "This is Tab 3 content.",
