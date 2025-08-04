@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome Page</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 40px;
+      background: linear-gradient(to right, #e0f7fa, #f1f8e9);
+      color: #333;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 32px;
+      margin-bottom: 40px;
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 12px 12px 0 0;
+      margin: 0 5px;
+      background-color: #cfd8dc;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.3s;
+    }
+
+    .tab:hover {
+      background-color: #b0bec5;
+    }
+
+    .tab.active {
+      background-color: #ffffff;
+      border-top: 3px solid #007bff;
+      box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .tab-content {
+      max-width: 100%;
+      margin: 0 auto;
+      border-radius: 0 0 12px 12px;
+      background-color: #ffffff;
+      padding: 30px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+      font-size: 18px;
+      min-height: 400px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1 id="welcome">Welcome!</h1>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab(1)">Stats Explorer</div>
+    <div class="tab" onclick="showTab(2)">Add Sighting</div>
+    <div class="tab" onclick="showTab(3)">User Info</div>
+    <div class="tab" onclick="showTab(4)">Map</div>
+  </div>
+
+  <div class="tab-content" id="tab-content">
+    <!-- Tab content dynamically loaded here -->
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const username = urlParams.get('username') || 'Guest';
+    document.getElementById('welcome').textContent = `Welcome ${username}!`;
+
+    function showTab(tabNum) {
+      document.querySelectorAll('.tab').forEach((tab, index) => {
+        tab.classList.toggle('active', index === tabNum - 1);
+      });
+
+      const tabContent = document.getElementById('tab-content');
+
+      if (tabNum === 1) {
+        fetch('/partial/stats-explorer/')
+          .then(res => res.text())
+          .then(html => {
+            tabContent.innerHTML = html;
+            populateLocalities();
+          });
+      } else {
+        const content = {
+          2: "This is Tab 2 content.",
+          3: "This is Tab 3 content.",
+          4: "This is Tab 4 content."
+        };
+        tabContent.textContent = content[tabNum];
+      }
+    }
+
+    function fetchSpeciesOverlap() {
+      const locA = document.getElementById('overlapLocA').value;
+      const locB = document.getElementById('overlapLocB').value;
+      const displayDiv = document.getElementById('species-overlap-display');
+
+      if (!locA || !locB) {
+        displayDiv.innerHTML = `<p style="color:red;">Please select both locations.</p>`;
+        return;
+      }
+
+      fetch(`/api/species-overlap?locA=${encodeURIComponent(locA)}&locB=${encodeURIComponent(locB)}`)
+        .then(res => res.json())
+        .then(data => {
+          let speciesListHTML = "<ul>";
+          data.species.forEach(species => {
+            speciesListHTML += `<li>${species}</li>`;
+          });
+          speciesListHTML += "</ul>";
+
+          displayDiv.innerHTML = `
+            <h4>Overlapping Species</h4>
+            <p><strong>Overlap count:</strong> ${data.count}</p>
+            ${speciesListHTML}
+          `;
+        })
+        .catch(err => {
+          displayDiv.innerHTML = `<p style="color:red;">Failed to fetch overlap info.</p>`;
+        });
+    }
+
+    function populateLocalities() {
+      fetch('/api/localities/')
+        .then(res => res.json())
+        .then(data => {
+          const localities = data.localities || [];
+          const selects = [
+            document.getElementById('regionSelect'),
+            document.getElementById('overlapLocA'),
+            document.getElementById('overlapLocB')
+          ];
+
+          selects.forEach(select => {
+            select.innerHTML = '<option value="">-- Choose a locality --</option>';
+            localities.forEach(loc => {
+              const option = document.createElement('option');
+              option.value = loc;
+              option.textContent = loc;
+              select.appendChild(option);
+            });
+          });
+        })
+        .catch(err => {
+          console.error('Failed to fetch localities:', err);
+        });
+    }
+
+    function fetchBirdStats() {
+      const region = document.getElementById('regionSelect').value;
+      const displayDiv = document.getElementById('bird-stats-display');
+      if (!region) {
+        displayDiv.innerHTML = `<p style="color:red;">Please select a locality.</p>`;
+        return;
+      }
+
+      fetch(`/api/bird-stats?region=${encodeURIComponent(region)}`)
+        .then(res => res.json())
+        .then(data => {
+          displayDiv.innerHTML = `
+            <h4>Stats for: ${region}</h4>
+            <p><strong>Unique species:</strong> ${data.unique_species}</p>
+            <p><strong>Most frequent species ID:</strong> ${data.most_frequent_species.species_id}</p>
+            <p><strong>Sightings:</strong> ${data.most_frequent_species.sightings}</p>
+          `;
+        })
+        .catch(err => {
+          displayDiv.innerHTML = `<p style="color:red;">Failed to fetch stats.</p>`;
+        });
+    }
+    document.addEventListener("DOMContentLoaded", () => {
+      showTab(1);
+    });
+  </script>
+
+</body>
+</html>
