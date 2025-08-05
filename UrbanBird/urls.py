@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from UrbanBird.UserRegister import views
 
 
@@ -24,5 +24,6 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('signin/', views.signin, name='signin'),
     path('home/', views.home_view, name='home'),
-     path('api/bird-stats', views.get_bird_stats, name='get_bird_stats'),
+    path('api/bird-stats', views.get_bird_stats, name='get_bird_stats'),
+    path('api/add-sighting/', views.add_sighting, name='add_sighting'),  
 ]

@@ -5,10 +5,6 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 import random
 import requests
-from django.contrib.auth.decorators import login_required
-from django.utils.decorators import method_decorator
-from .models import Occurrence, Location  # Adjust if your models are named differently
-from django.contrib.auth.models import User
 
 GOOGLE_MAPS_API_KEY = 'AIzaSyCmlDRkxckPchGOXaYjCL6qcpcFCcle_94'  # Replace with your key
 
@@ -138,7 +134,10 @@ def add_sighting(request):
         longitude = float(data['longitude'])
         event_date = data['event_date']
         individual_count = int(data['individual_count'])
-        user_id = data.get('user_id')  # <-- Get user_id from POST data
+        user_id = data.get('user_id')
+
+        print("Received data:", data)
+        print("user_id type:", type(user_id))
 
         if not user_id:
             return JsonResponse({'success': False, 'message': 'User not signed in.'})
@@ -151,49 +150,49 @@ def add_sighting(request):
         if not gmaps_resp['results']:
             return JsonResponse({'success': False, 'message': 'Invalid coordinates (not a real location).'})
 
+        cursor = connection.cursor()
+
         # Check if LOCATION exists
-        location = Location.objects.filter(latitude=latitude, longitude=longitude, locality=locality).first()
-        if not location:
-            location_id = f"https://observation.org/observation/{random.randint(100000000, 999999999)}"
-            location = Location.objects.create(
-                location_id=location_id,
-                latitude=latitude,
-                longitude=longitude,
-                locality=locality
-            )
+        cursor.execute(
+            "SELECT location_id FROM LOCATION WHERE latitude = %s AND longitude = %s AND locality = %s",
+            (latitude, longitude, locality)
+        )
+        location_row = cursor.fetchone()
+        if location_row:
+            location_id = location_row[0]
         else:
-            location_id = location.location_id
+            location_id = f"https://observation.org/observation/{random.randint(100000000, 999999999)}"
+            cursor.execute(
+                "INSERT INTO LOCATION (location_id, latitude, longitude, locality) VALUES (%s, %s, %s, %s)",
+                (location_id, latitude, longitude, locality)
+            )
+            connection.commit()
 
         # Prevent duplicate for same user, species, location, date, count
-        duplicate = Occurrence.objects.filter(
-            user_id=user_id,
-            species_id=species,
-            location_id=location_id,
-            event_date=event_date,
-            individual_count=individual_count
-        ).exists()
-        if duplicate:
+        cursor.execute(
+            "SELECT 1 FROM OCCURRENCE WHERE user_id = %s AND species_id = %s AND location_id = %s AND event_date = %s AND individual_count = %s",
+            (user_id, species, location_id, event_date, individual_count)
+        )
+        if cursor.fetchone():
             return JsonResponse({'success': False, 'message': 'Duplicate sighting for this user.'})
 
         # Generate unique occurrence_id
         while True:
             occurrence_id = random.randint(1000000000, 9999999999)
-            if not Occurrence.objects.filter(occurrence_id=occurrence_id).exists():
+            cursor.execute("SELECT 1 FROM OCCURRENCE WHERE occurrence_id = %s", (occurrence_id,))
+            if not cursor.fetchone():
                 break
 
-        Occurrence.objects.create(
-            occurrence_id=occurrence_id,
-            species_id=species,
-            location_id=location_id,
-            user_id=user_id,
-            event_date=event_date,
-            individual_count=individual_count
+        cursor.execute(
+            "INSERT INTO OCCURRENCE (occurrence_id, species_id, location_id, user_id, event_date, individual_count) VALUES (%s, %s, %s, %s, %s, %s)",
+            (occurrence_id, species, location_id, user_id, event_date, individual_count)
         )
+        connection.commit()
 
         return JsonResponse({'success': True})
 
     except Exception as e:
-        print("Add Sighting Error:", e)  # Add this for debugging
+        print("Add Sighting Error:", e)
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
 
 

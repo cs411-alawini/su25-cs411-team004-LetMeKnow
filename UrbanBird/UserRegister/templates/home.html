@@ -197,8 +197,9 @@ function addSighting(event) {
   const longitude = parseFloat(document.getElementById('longitude').value);
   const event_date = document.getElementById('event_date').value;
   const individual_count = parseInt(document.getElementById('individual_count').value, 10);
+  const user_id = username; 
 
-  // Basic frontend validation
+
   if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
     document.getElementById('add-sighting-result').innerHTML =
       `<p style="color:red;">Invalid latitude or longitude values.</p>`;
@@ -210,7 +211,15 @@ function addSighting(event) {
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ species, locality, latitude, longitude, event_date, individual_count })
+    body: JSON.stringify({
+      species,
+      locality,
+      latitude,
+      longitude,
+      event_date,
+      individual_count,
+      user_id 
+    })
   })
     .then(res => res.json())
     .then(data => {
