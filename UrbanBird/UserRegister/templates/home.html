@@ -89,7 +89,7 @@
   <div class="tabs">
     <div class="tab active" onclick="showTab(1)">Stats Explorer</div>
     <div class="tab" onclick="showTab(2)">Add Sighting</div>
-    <div class="tab" onclick="showTab(3)">User Info</div>
+    <div class="tab" onclick="showTab(3)">User Info - Leaderboard</div>
     <div class="tab" onclick="showTab(4)">Map</div>
   </div>
 
@@ -97,6 +97,7 @@
   </div>
 
   <script>
+
     const urlParams = new URLSearchParams(window.location.search);
     const username = urlParams.get('username') || 'Guest';
     document.getElementById('welcome').textContent = `Welcome ${username}!`;
@@ -115,27 +116,116 @@
             tabContent.innerHTML = html;
             populateLocalities();
           });
-      } 
-      else if (tabNum == 2){
-        tabContent.innerHTML = `
-      <div>
-        <h3>Add Bird Sighting</h3>
-        <form id="add-sighting-form" style="max-width:400px;margin:auto;">
-          <input type="text" id="species" class="input-field" placeholder="Species" required><br>
-          <input type="text" id="locality" class="input-field" placeholder="Locality" required><br>
-          <input type="number" step="any" id="latitude" class="input-field" placeholder="Latitude (-90 to 90)" required><br>
-          <input type="number" step="any" id="longitude" class="input-field" placeholder="Longitude (-180 to 180)" required><br>
-          <input type="date" id="event_date" class="input-field" required><br>
-          <input type="number" id="individual_count" class="input-field" placeholder="Number of Individuals" min="1" required><br>
-          <button type="submit" class="form-button">Submit Sighting</button>
-        </form>
-        <div id="add-sighting-result" style="margin-top: 20px;"></div>
-      </div>
-    `;
-    document.getElementById('add-sighting-form').onsubmit = addSighting;
+      } else if (tabNum == 3) {
+        fetch('/user_info/?user_id=' + username)
+          .then(res => res.text())
+          .then(html => {
+            tabContent.innerHTML = html;
+            const changeEmailBtn = document.getElementById('change-email-btn');
+            const changePasswordBtn = document.getElementById('change-password-btn');
+            const changeEmailForm = document.getElementById('change-email-form');
+            const changePasswordForm = document.getElementById('change-password-form');
+            const submitEmailChangeBtn = document.getElementById('submit-email-change');
+            const submitPasswordChangeBtn = document.getElementById('submit-password-change');
+            const deleteAccountBtn = document.getElementById('delete-account-btn');
+            const deleteAccountForm = document.getElementById('delete-account-form');
+            const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+            const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+
+            changeEmailBtn.addEventListener('click', () => {
+              changePasswordBtn.disabled = true;
+              changeEmailBtn.style.display = 'none';
+              changeEmailForm.style.display = 'block';
+            });
+
+            changePasswordBtn.addEventListener('click', () => {
+              changeEmailBtn.disabled = true;
+              changePasswordBtn.style.display = 'none';
+              changePasswordForm.style.display = 'block';
+            });
+
+            deleteAccountBtn.addEventListener('click', () => {
+              deleteAccountForm.style.display = 'block';
+            });
+
+            confirmDeleteBtn.addEventListener('click', () => {
+              fetch('/delete_account/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: username }),
+              })
+              .then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                  alert('Account deleted successfully!');
+                  window.location.href = '/';
+                } else {
+                  alert('Error deleting account');}})})
+              
+            cancelDeleteBtn.addEventListener('click', () => {
+                deleteAccountForm.style.display = 'none';
+            });
+
+            submitEmailChangeBtn.addEventListener('click', () => {
+              const newEmail = document.getElementById('new-email').value;
+              fetch('/update_user_info/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: newEmail, user_id: username }),
+              })
+              .then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                  alert('Email updated successfully!');
+                  window.history.go(0);
+                  changeEmailForm.style.display = 'none';
+                  changeEmailBtn.style.display = 'block';
+                } else {
+                  alert('Error updating email');
+                }
+              })
+              .catch(error => console.error('Error:', error));
+            });
+
+            cancelDeleteBtn.addEventListener('click', () => {
+              deleteAccountForm.style.display = 'none';
+            });
+
+            submitPasswordChangeBtn.addEventListener('click', () => {
+              const newPassword = document.getElementById('new-password').value;
+              fetch('/update_user_info/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: newPassword, user_id: username }),
+              })
+              .then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                  alert('Password updated successfully!');
+                  window.history.go(0);
+                  changePasswordForm.style.display = 'none';
+                  changePasswordBtn.style.display = 'block';
+                }})})});
+      } else if (tabNum == 2){
+            tabContent.innerHTML = `
+          <div>
+            <h3>Add Bird Sighting</h3>
+            <form id="add-sighting-form" style="max-width:400px;margin:auto;">
+              <input type="text" id="species" class="input-field" placeholder="Species" required><br>
+              <input type="text" id="locality" class="input-field" placeholder="Locality" required><br>
+              <input type="number" step="any" id="latitude" class="input-field" placeholder="Latitude (-90 to 90)" required><br>
+              <input type="number" step="any" id="longitude" class="input-field" placeholder="Longitude (-180 to 180)" required><br>
+              <input type="date" id="event_date" class="input-field" required><br>
+              <input type="number" id="individual_count" class="input-field" placeholder="Number of Individuals" min="1" required><br>
+              <button type="submit" class="form-button">Submit Sighting</button>
+            </form>
+            <div id="add-sighting-result" style="margin-top: 20px;"></div>
+          </div>
+        `;
+        document.getElementById('add-sighting-form').onsubmit = addSighting;
       }
       else if (tabNum === 4){
-        {
+      
         tabContent.innerHTML = `
           <div style="display: flex; gap: 20px;">
             <div style="width: 250px; padding: 10px; background: #f0f4f8; border-radius: 12px;">
@@ -185,14 +275,10 @@
             })
             .catch(err => console.error("Failed to load localities:", err));
         }, 0);
-      }
+      
       }
       else {
-        const content = {
-          2: "This is Tab 2 content.",
-          3: "This is Tab 3 content.",
-        };
-        tabContent.textContent = content[tabNum];
+        alert('Error updating password');
       }
     }
 function addSighting(event) {

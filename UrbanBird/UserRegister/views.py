@@ -1,10 +1,9 @@
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
-from django.db import connection
+from django.db import connection, transaction
 from django.views.decorators.csrf import csrf_exempt
 import json
 import random
-import requests
 
 
 GOOGLE_MAPS_API_KEY = 'AIzaSyCmlDRkxckPchGOXaYjCL6qcpcFCcle_94'
@@ -194,7 +193,6 @@ def signin(request):
             if user:
                 columns = [col[0] for col in cursor.description]
                 user_dict = dict(zip(columns, user))
-                print(user_dict.get('user_id'))
                 return JsonResponse({
                     'success': True,
                     'message': 'Sign in successful!',
@@ -312,4 +310,84 @@ def get_localities(request):
             localities.append(row[0])
 
     return JsonResponse({"localities": localities})
+@transaction.atomic
+def user_info(request):
+    user_id = request.GET.get('user_id')
+    if not user_id:
+        return HttpResponse("User ID parameter is required", status=400)
+
+    try:
+        cursor = connection.cursor()
+        cursor.execute("CALL user_summary_and_leaderboard_transaction(%s)", [user_id])
+        user_summary = cursor.fetchone()
+        cursor.nextset()
+        leaderboard = cursor.fetchall()
+
+        user_data = {
+            'user_id': user_summary[0],
+            'email': user_summary[1],
+            'password': user_summary[2],
+            'total_sightings': user_summary[3],
+            'total_species_seen': user_summary[4],
+            'total_localities': user_summary[5]
+        }
+
+        leaderboard_data = []
+        for row in leaderboard:
+            leaderboard_data.append({
+                'user_id': row[0],
+                'total_sightings': row[1]
+            })
+
+        return render(request, 'userInfo.html', {'user_data': user_data, 'leaderboard_data': leaderboard_data})
+
+    except Exception as e:
+        return HttpResponse("Error retrieving user info! Please add a few sightings and try again.", status=500)
+    
+
+@csrf_exempt
+def update_user_info(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_id = data.get('user_id')
+            if not user_id:
+                return JsonResponse({'success': False, 'message': 'User ID parameter is required'}, status=400)
+
+            if 'email' in data:
+                new_email = data['email']
+                cursor = connection.cursor()
+                cursor.execute("UPDATE USER SET email = %s WHERE user_id = %s", (new_email, user_id))
+                return JsonResponse({'success': True, 'message': 'Email updated successfully'})
+
+            elif 'password' in data:
+                new_password = data['password']
+                cursor = connection.cursor()
+                cursor.execute("UPDATE USER SET password = %s WHERE user_id = %s", (new_password, user_id))
+                return JsonResponse({'success': True, 'message': 'Password updated successfully'})
+
+            else:
+                return JsonResponse({'success': False, 'message': 'Invalid request'}, status=400)
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'An error occurred: {str(e)}'}, status=500)
+
+    return JsonResponse({'success': False, 'message': 'Only POST method is allowed'}, status=405)
+
+@csrf_exempt
+def delete_account(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_id = data.get('user_id')
+            if not user_id:
+                return JsonResponse({'success': False, 'message': 'User ID parameter is required'}, status=400)
+
+            cursor = connection.cursor()
+            cursor.execute("DELETE FROM USER WHERE user_id = %s", [user_id])
+            connection.commit()
+            return JsonResponse({'success': True, 'message': 'Account deleted successfully!'}, status=200)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'An error occurred: {str(e)}'}, status=500)
+    return JsonResponse({'success': False, 'message': 'Only POST method is allowed'}, status=405)
 
