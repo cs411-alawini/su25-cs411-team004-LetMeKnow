@@ -8,6 +8,44 @@ import requests
 
 GOOGLE_MAPS_API_KEY = 'AIzaSyCmlDRkxckPchGOXaYjCL6qcpcFCcle_94'  # Replace with your key
 
+def get_localities(request):
+    try:
+        cursor = connection.cursor()
+        cursor.execute("SELECT DISTINCT locality FROM LOCATION ORDER BY locality ASC")
+        rows = cursor.fetchall()
+        localities = [row[0] for row in rows]
+        return JsonResponse({'localities': localities})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+def stats_explorer_partial(request):
+    return render(request, 'statsExplorer.html')
+
+def get_species_overlap(request):
+    locA = request.GET.get('locA')
+    locB = request.GET.get('locB')
+
+    if not locA or not locB:
+        return HttpResponse("Both locations must be provided", status=400)
+
+    try:
+        cursor = connection.cursor()
+        cursor.execute("CALL GetSpeciesOverlapInfo(%s, %s)", [locA, locB])
+        overlap_species = cursor.fetchall()
+        cursor.nextset()
+        overlap_count_row = cursor.fetchone()
+
+        species_list = [row[0] for row in overlap_species]
+        overlap_count = overlap_count_row[0] if overlap_count_row else 0
+
+        return JsonResponse({
+            "species": species_list,
+            "count": overlap_count
+        })
+
+    except Exception as e:
+        return HttpResponse(f"Error fetching overlap data: {str(e)}", status=500)
+    
 def get_bird_stats(request):
     region = request.GET.get("region", "")
     if not region:
