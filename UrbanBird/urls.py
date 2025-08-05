@@ -29,5 +29,8 @@ urlpatterns = [
     path('partial/stats-explorer/', views.stats_explorer_partial, name='stats_explorer_partial'),
     path('api/localities/', views.get_localities, name='get_localities'),
     path("api/sightings", views.get_sightings, name="get_sightings"),
+    path('api/bird-stats', views.get_bird_stats, name='get_bird_stats'),
+    path('api/add-sighting/', views.add_sighting, name='add_sighting'),  
+    
 
 ]
