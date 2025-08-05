@@ -3,6 +3,14 @@ from django.http import HttpResponse, JsonResponse
 from django.db import connection
 from django.views.decorators.csrf import csrf_exempt
 import json
+import random
+import requests
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from .models import Occurrence, Location  # Adjust if your models are named differently
+from django.contrib.auth.models import User
+
+GOOGLE_MAPS_API_KEY = 'AIzaSyCmlDRkxckPchGOXaYjCL6qcpcFCcle_94'  # Replace with your key
 
 def get_bird_stats(request):
     region = request.GET.get("region", "")
@@ -116,5 +124,76 @@ def signin(request):
         'success': False,
         'message': 'Only POST method is allowed'
     }, status=405)
-   
+
+@csrf_exempt
+def add_sighting(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid request method.'})
+
+    try:
+        data = json.loads(request.body)
+        species = data['species'].strip()
+        locality = data['locality'].strip()
+        latitude = float(data['latitude'])
+        longitude = float(data['longitude'])
+        event_date = data['event_date']
+        individual_count = int(data['individual_count'])
+        user_id = data.get('user_id')  # <-- Get user_id from POST data
+
+        if not user_id:
+            return JsonResponse({'success': False, 'message': 'User not signed in.'})
+
+        # Validate coordinates with Google Maps API
+        gmaps_url = (
+            f"https://maps.googleapis.com/maps/api/geocode/json?latlng={latitude},{longitude}&key={GOOGLE_MAPS_API_KEY}"
+        )
+        gmaps_resp = requests.get(gmaps_url).json()
+        if not gmaps_resp['results']:
+            return JsonResponse({'success': False, 'message': 'Invalid coordinates (not a real location).'})
+
+        # Check if LOCATION exists
+        location = Location.objects.filter(latitude=latitude, longitude=longitude, locality=locality).first()
+        if not location:
+            location_id = f"https://observation.org/observation/{random.randint(100000000, 999999999)}"
+            location = Location.objects.create(
+                location_id=location_id,
+                latitude=latitude,
+                longitude=longitude,
+                locality=locality
+            )
+        else:
+            location_id = location.location_id
+
+        # Prevent duplicate for same user, species, location, date, count
+        duplicate = Occurrence.objects.filter(
+            user_id=user_id,
+            species_id=species,
+            location_id=location_id,
+            event_date=event_date,
+            individual_count=individual_count
+        ).exists()
+        if duplicate:
+            return JsonResponse({'success': False, 'message': 'Duplicate sighting for this user.'})
+
+        # Generate unique occurrence_id
+        while True:
+            occurrence_id = random.randint(1000000000, 9999999999)
+            if not Occurrence.objects.filter(occurrence_id=occurrence_id).exists():
+                break
+
+        Occurrence.objects.create(
+            occurrence_id=occurrence_id,
+            species_id=species,
+            location_id=location_id,
+            user_id=user_id,
+            event_date=event_date,
+            individual_count=individual_count
+        )
+
+        return JsonResponse({'success': True})
+
+    except Exception as e:
+        print("Add Sighting Error:", e)  # Add this for debugging
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+
 
