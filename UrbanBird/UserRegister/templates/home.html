@@ -56,6 +56,30 @@
       font-size: 18px;
       min-height: 400px;
     }
+        .input-field {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .input-field:focus {
+      border-color: #007bff;
+      outline: none;
+    }
+    .form-button {
+      background-color: #007bff;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .form-button:hover {
+      background-color: #0056b3;
+    }
   </style>
 </head>
 <body>
@@ -181,7 +205,79 @@
                   window.history.go(0);
                   changePasswordForm.style.display = 'none';
                   changePasswordBtn.style.display = 'block';
-                } else {
+                } 
+      else if (tabNum == 2){
+        tabContent.innerHTML = `
+      <div>
+        <h3>Add Bird Sighting</h3>
+        <form id="add-sighting-form" style="max-width:400px;margin:auto;">
+          <input type="text" id="species" class="input-field" placeholder="Species" required><br>
+          <input type="text" id="locality" class="input-field" placeholder="Locality" required><br>
+          <input type="number" step="any" id="latitude" class="input-field" placeholder="Latitude (-90 to 90)" required><br>
+          <input type="number" step="any" id="longitude" class="input-field" placeholder="Longitude (-180 to 180)" required><br>
+          <input type="date" id="event_date" class="input-field" required><br>
+          <input type="number" id="individual_count" class="input-field" placeholder="Number of Individuals" min="1" required><br>
+          <button type="submit" class="form-button">Submit Sighting</button>
+        </form>
+        <div id="add-sighting-result" style="margin-top: 20px;"></div>
+      </div>
+    `;
+    document.getElementById('add-sighting-form').onsubmit = addSighting;
+      }
+      else if (tabNum === 4){
+        {
+        tabContent.innerHTML = `
+          <div style="display: flex; gap: 20px;">
+            <div style="width: 250px; padding: 10px; background: #f0f4f8; border-radius: 12px;">
+              <h4>Filter Sightings</h4>
+
+              <label for="speciesInput"><strong>Search Species:</strong></label>
+              <input list="speciesList" id="speciesInput" placeholder="e.g., Blue Jay" style="width: 100%; margin-bottom: 10px;" />
+              <datalist id="speciesList">
+                <option value="Northern Cardinal">
+                <option value="American Robin">
+                <option value="Blue Jay">
+              </datalist>
+
+              <label for="localitySelect"><strong>Select Locality:</strong></label>
+              <select id="localitySelect" style="width: 100%; margin-bottom: 10px;">
+                <option value="">-- Any Locality --</option>
+              </select>
+
+              <label for="limitInput"><strong>Max Sightings:</strong></label>
+              <input type="number" id="limitInput" min="1" placeholder="e.g. 100" style="width: 100%; margin-bottom: 10px;">
+
+              <button onclick="filterMap()" style="width: 100%; margin-bottom: 10px;">Apply Filters</button>
+              <button onclick="initMap()" style="width: 100%; background-color: #e0e0e0;">Reset Filters</button>
+            </div>
+
+            <div style="flex-grow: 1;">
+              <h3>Birding Map</h3>
+              <p>Zoom / drag to explore hotspots.</p>
+              <div id="map" style="height: 450px; border-radius: 12px;"></div>
+            </div>
+          </div>
+        `;
+        // THIS IS WHERE I POPULATE THE "Select locality" BOX !!!
+        setTimeout(() => {
+          initMap();
+          fetch("/api/localities")
+            .then(res => res.json())
+            .then(data => {
+              const localitySelect = document.getElementById("localitySelect");
+              if (!localitySelect) return;
+              data.localities.forEach(loc => {
+                const opt = document.createElement("option");
+                opt.value = loc;
+                opt.textContent = loc;
+                localitySelect.appendChild(opt);
+              });
+            })
+            .catch(err => console.error("Failed to load localities:", err));
+        }, 0);
+      }
+      }
+      else {
                   alert('Error updating password');
                 }
               })
@@ -194,10 +290,124 @@
         const content = {
           2: "This is Tab 2 content.",
           3: "This is Tab 3 content.",
-          4: "This is Tab 4 content."
         };
         tabContent.textContent = content[tabNum];
       }
+    }
+function addSighting(event) {
+  event.preventDefault();
+  const species = document.getElementById('species').value.trim();
+  const locality = document.getElementById('locality').value.trim();
+const user_id = username; 
+  const latitude = parseFloat(document.getElementById('latitude').value);
+  const longitude = parseFloat(document.getElementById('longitude').value);
+  const event_date = document.getElementById('event_date').value;
+  const individual_count = parseInt(document.getElementById('individual_count').value, 10);
+
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+    document.getElementById('add-sighting-result').innerHTML =
+      `<p style="color:red;">Invalid latitude or longitude values.</p>`;
+    return;
+  }
+
+  fetch('/api/add-sighting/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      species,
+      locality,
+      latitude,
+      longitude,
+      event_date,
+      individual_count,
+      user_id 
+    })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('add-sighting-result').innerHTML =
+          `<p style="color:green;">Sighting added successfully!</p>`;
+        document.getElementById('add-sighting-form').reset();
+      } else {
+        document.getElementById('add-sighting-result').innerHTML =
+          `<p style="color:red;">${data.message}</p>`;
+      }
+    })
+    .catch(() => {
+      document.getElementById('add-sighting-result').innerHTML =
+        `<p style="color:red;">Failed to add sighting. Please try again.</p>`;
+    });
+}
+      function initMap() {
+      const mapContainer = document.getElementById("map");
+      if (!mapContainer) return;
+
+      window.map = new google.maps.Map(mapContainer, {
+        center: { lat: 31.9686, lng: -99.9018 },
+        zoom: 5.5,
+      });
+      window.mapMarkers = [];
+
+      fetch("/api/sightings")
+        .then(res => res.json())
+        .then(data => placeMarkers(data.sightings))
+        .catch(err => console.error("Initial map load failed:", err));
+    }
+function placeMarkers(sightings) {
+      const infoWindow = new google.maps.InfoWindow();
+
+      if (window.mapMarkers && Array.isArray(window.mapMarkers)) {
+        window.mapMarkers.forEach(m => m.setMap(null));
+      }
+      window.mapMarkers = [];
+
+      sightings.forEach(point => {
+        const lat = parseFloat(point.latitude);
+        const lng = parseFloat(point.longitude);
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        const marker = new google.maps.Marker({
+          position: { lat, lng },
+          map: window.map,
+        });
+        window.mapMarkers.push(marker);
+
+        marker.addListener("click", () => {
+          const content = `
+            <div>
+              <strong>Common name:</strong> ${point.bird_name}<br/>
+              <strong>Taxonomic name:</strong> ${point.species_id}<br/>
+              <strong>Order:</strong> ${point.order_name}<br/>
+              <strong>Rarity:</strong> ${point.rarity_label}<br/>
+              <strong>Locality:</strong> ${point.locality}<br/>
+              <strong>Lat:</strong> ${lat.toFixed(4)}<br/>
+              <strong>Lng:</strong> ${lng.toFixed(4)}
+            </div>`;
+          infoWindow.setContent(content);
+          infoWindow.open(window.map, marker);
+        });
+      });
+    }
+
+    // FILTER MARKERS
+    // PRETTY SELF EXPLANITORY
+    function filterMap() {
+      const species = document.getElementById("speciesInput").value;
+      const locality = document.getElementById("localitySelect").value;
+      const limit = document.getElementById("limitInput").value;
+
+      const params = new URLSearchParams();
+      if (species) params.append("species", species);
+      if (locality) params.append("locality", locality);
+      if (limit) params.append("limit", limit);
+
+      fetch("/api/sightings?" + params.toString())
+        .then(res => res.json())
+        .then(data => placeMarkers(data.sightings))
+        .catch(err => console.error("Filter failed:", err));
     }
 
     function fetchSpeciesOverlap() {
@@ -282,6 +492,8 @@
       showTab(1);
     });
   </script>
-
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCmlDRkxckPchGOXaYjCL6qcpcFCcle_94">
+  </script>
 </body>
 </html>

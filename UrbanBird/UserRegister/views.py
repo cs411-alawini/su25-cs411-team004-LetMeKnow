@@ -3,7 +3,78 @@ from django.http import HttpResponse, JsonResponse
 from django.db import connection, transaction
 from django.views.decorators.csrf import csrf_exempt
 import json
+import random
+import requests
 
+
+GOOGLE_MAPS_API_KEY = 'AIzaSyCmlDRkxckPchGOXaYjCL6qcpcFCcle_94'
+
+@csrf_exempt
+def add_sighting(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid request method.'})
+
+    try:
+        data = json.loads(request.body)
+        species = data['species'].strip()
+        locality = data['locality'].strip()
+        latitude = float(data['latitude'])
+        longitude = float(data['longitude'])
+        event_date = data['event_date']
+        individual_count = int(data['individual_count'])
+        user_id = data.get('user_id')
+
+        if not user_id:
+            return JsonResponse({'success': False, 'message': 'User not signed in.'})
+
+        gmaps_url = (
+            f"https://maps.googleapis.com/maps/api/geocode/json?latlng={latitude},{longitude}&key={GOOGLE_MAPS_API_KEY}"
+        )
+        gmaps_resp = requests.get(gmaps_url).json()
+        if not gmaps_resp['results']:
+            return JsonResponse({'success': False, 'message': 'Invalid coordinates (not a real location).'})
+
+        cursor = connection.cursor()
+
+        cursor.execute(
+            "SELECT location_id FROM LOCATION WHERE latitude = %s AND longitude = %s AND locality = %s",
+            (latitude, longitude, locality)
+        )
+        location_row = cursor.fetchone()
+        if location_row:
+            location_id = location_row[0]
+        else:
+            location_id = f"https://observation.org/observation/{random.randint(100000000, 999999999)}"
+            cursor.execute(
+                "INSERT INTO LOCATION (location_id, latitude, longitude, locality) VALUES (%s, %s, %s, %s)",
+                (location_id, latitude, longitude, locality)
+            )
+        connection.commit()
+        cursor.execute(
+            "SELECT 1 FROM OCCURRENCE WHERE user_id = %s AND species_id = %s AND location_id = %s AND event_date = %s AND individual_count = %s",
+            (user_id, species, location_id, event_date, individual_count)
+        )
+        if cursor.fetchone():
+       
+            return JsonResponse({'success': False, 'message': 'Duplicate sighting for this user.'})
+
+        while True:
+            occurrence_id = random.randint(1000000000, 9999999999)
+            cursor.execute("SELECT 1 FROM OCCURRENCE WHERE occurrence_id = %s", (occurrence_id,))
+            if not cursor.fetchone():
+                break
+
+        cursor.execute(
+            "INSERT INTO OCCURRENCE (occurrence_id, species_id, location_id, user_id, event_date, individual_count) VALUES (%s, %s, %s, %s, %s, %s)",
+            (occurrence_id, species, location_id, user_id, event_date, individual_count)
+        )
+        connection.commit()
+        return JsonResponse({'success': True})
+
+    except Exception as e:
+        print("Add Sighting Error:", e) 
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+    
 def get_localities(request):
     try:
         cursor = connection.cursor()
@@ -153,6 +224,93 @@ def signin(request):
         'success': False,
         'message': 'Only POST method is allowed'
     }, status=405)
+@csrf_exempt
+def get_sightings(request):
+    try:
+
+        species = request.GET.get('species')
+        locality = request.GET.get('locality')
+        limit = request.GET.get('limit')
+
+        print("Filters received:")
+        print("  Species:", species)
+        print("  Locality:", locality)
+        print("  Limit:", limit)
+
+        cursor = connection.cursor()
+
+        base_query = """
+            SELECT
+            Tax.species_id,
+            Tax.common_name AS bird_name,
+            Loc.latitude,
+            Loc.longitude,
+            Loc.locality,
+            Tax.category,
+            Orde.order_name,
+            Rar.label AS rarity_label
+            FROM UrbanBird.OCCURRENCE Occ
+            JOIN UrbanBird.TAXON Tax ON Occ.species_id = Tax.species_id
+            JOIN UrbanBird.LOCATION Loc ON Occ.location_id = Loc.location_id
+            JOIN UrbanBird.ORDER Orde ON Tax.order_id = Orde.order_id
+            JOIN UrbanBird.RARITY Rar ON Tax.rarity_id = Rar.rarity_id
+        """
+
+        where_clauses = ["Loc.latitude IS NOT NULL", "Loc.longitude IS NOT NULL"]
+        params = []
+
+        if species:
+            where_clauses.append("Tax.common_name LIKE %s")
+            params.append(species)
+
+        if locality:
+            where_clauses.append("Loc.locality LIKE %s")
+            params.append(locality)
+
+        if where_clauses:
+            base_query += " WHERE " + " AND ".join(where_clauses)
+
+        if limit and limit.isdigit():
+            base_query += " LIMIT %s"
+            params.append(int(limit))
+
+        cursor.execute(base_query, params)
+
+        rows = cursor.fetchall()
+
+        output = []
+        for row in rows:
+            output.append({
+                "species_id": row[0],
+                "bird_name": row[1],
+                "latitude": float(row[2]),
+                "longitude": float(row[3]),
+                "locality": row[4],
+                "category": row[5],
+                "order_name": row[6],
+                "rarity_label": row[7],
+            })
+
+        print(f"Returning {len(output)} full sightings")
+        return JsonResponse({"sightings": output}, status=200)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+def get_localities(request):
+    cursor = connection.cursor()
+    cursor.execute("SELECT DISTINCT locality FROM UrbanBird.LOCATION LIMIT 1000;")
+    rows = cursor.fetchall()
+
+    localities = []
+    for row in rows:
+        if row[0]:
+            localities.append(row[0])
+
+    return JsonResponse({"localities": localities})
 @transaction.atomic
 def user_info(request):
     user_id = request.GET.get('user_id')
