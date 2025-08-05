@@ -66,6 +66,94 @@ def index(request):
     return render(request, 'register.html', {'users': [user['user_id'] for user in users]})
 
 @csrf_exempt
+def get_sightings(request):
+    try:
+
+        species = request.GET.get('species')
+        locality = request.GET.get('locality')
+        limit = request.GET.get('limit')
+
+        print("Filters received:")
+        print("  Species:", species)
+        print("  Locality:", locality)
+        print("  Limit:", limit)
+
+        cursor = connection.cursor()
+
+        base_query = """
+            SELECT
+            Tax.species_id,
+            Tax.common_name AS bird_name,
+            Loc.latitude,
+            Loc.longitude,
+            Loc.locality,
+            Tax.category,
+            Orde.order_name,
+            Rar.label AS rarity_label
+            FROM UrbanBird.OCCURRENCE Occ
+            JOIN UrbanBird.TAXON Tax ON Occ.species_id = Tax.species_id
+            JOIN UrbanBird.LOCATION Loc ON Occ.location_id = Loc.location_id
+            JOIN UrbanBird.ORDER Orde ON Tax.order_id = Orde.order_id
+            JOIN UrbanBird.RARITY Rar ON Tax.rarity_id = Rar.rarity_id
+        """
+
+        where_clauses = ["Loc.latitude IS NOT NULL", "Loc.longitude IS NOT NULL"]
+        params = []
+
+        if species:
+            where_clauses.append("Tax.common_name LIKE %s")
+            params.append(species)
+
+        if locality:
+            where_clauses.append("Loc.locality LIKE %s")
+            params.append(locality)
+
+        if where_clauses:
+            base_query += " WHERE " + " AND ".join(where_clauses)
+
+        if limit and limit.isdigit():
+            base_query += " LIMIT %s"
+            params.append(int(limit))
+
+        cursor.execute(base_query, params)
+
+        rows = cursor.fetchall()
+
+        output = []
+        for row in rows:
+            output.append({
+                "species_id": row[0],
+                "bird_name": row[1],
+                "latitude": float(row[2]),
+                "longitude": float(row[3]),
+                "locality": row[4],
+                "category": row[5],
+                "order_name": row[6],
+                "rarity_label": row[7],
+            })
+
+        print(f"Returning {len(output)} full sightings")
+        return JsonResponse({"sightings": output}, status=200)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+def get_localities(request):
+    cursor = connection.cursor()
+    cursor.execute("SELECT DISTINCT locality FROM UrbanBird.LOCATION LIMIT 1000;")
+    rows = cursor.fetchall()
+
+    localities = []
+    for row in rows:
+        if row[0]:
+            localities.append(row[0])
+
+    return JsonResponse({"localities": localities})
+
+@csrf_exempt
 def signin(request):
     if request.method == 'POST':
         try:

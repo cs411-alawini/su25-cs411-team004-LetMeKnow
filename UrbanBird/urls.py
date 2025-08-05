@@ -24,5 +24,8 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('signin/', views.signin, name='signin'),
     path('home/', views.home_view, name='home'),
-     path('api/bird-stats', views.get_bird_stats, name='get_bird_stats'),
+    path('api/bird-stats', views.get_bird_stats, name='get_bird_stats'),
+    path("api/sightings", views.get_sightings, name="get_sightings"),
+    path("api/localities", views.get_localities, name="get_localities"),
+
 ]
