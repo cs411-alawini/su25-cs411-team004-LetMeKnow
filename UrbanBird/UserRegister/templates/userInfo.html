@@ -7,6 +7,7 @@
   <title>User Info</title>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <style>
     body {
       font-family: 'Poppins', sans-serif;
@@ -18,13 +19,28 @@
   </style>
 </head>
 <body>
+
   <div class="container">
     <strong><h2 class="title">User Info</h2></strong>
     <p style="margin-top: 25px;">User ID: {{ user_data.user_id }}</p>
+    <p>Email: {{ user_data.email }} 
+      <button id="change-email-btn" class="btn btn-primary btn-sm">Change Email</button>
+      <div id="change-email-form" style="display: none;">
+        <input type="text" id="new-email" placeholder="Enter new email">
+        <button id="submit-email-change" class="btn btn-primary btn-md">Submit</button>
+      </div>
+    </p>
+    <p>Password: {{ user_data.password }} 
+      <button id="change-password-btn" class="btn btn-primary btn-sm">Change Password</button>
+      <div id="change-password-form" style="display: none;">
+        <input type="password" id="new-password" placeholder="Enter new password">
+        <button id="submit-password-change" class="btn btn-primary btn-md">Submit</button>
+      </div>
+    </p>
+    <strong><h2 class="title">User Stats</h2></strong>
     <p>Total Sightings: {{ user_data.total_sightings }}</p>
     <p>Total Species Seen: {{ user_data.total_species_seen }}</p>
     <p>Total Localities: {{ user_data.total_localities }}</p>
-
     <strong><h3 style="margin-top: 40px; margin-bottom: 20px; position: center;" class="title">Top 15 Birders Leaderboard</h3></strong>
     <table class="table table-striped">
       <tr>
@@ -38,6 +54,12 @@
         </tr>
       {% endfor %}
     </table>
-  </div>
+    <button id="delete-account-btn" class="btn btn-danger btn-md">Delete Account</button>
+    <div id="delete-account-form" style="display: none;">
+      <p style="margin-top: 20px;">Are you sure you want to delete your account? This action cannot be undone.</p>
+      <button id="confirm-delete-btn" class="btn btn-danger btn-md">Confirm Delete</button>
+      <button id="cancel-delete-btn" class="btn btn-secondary btn-md">Cancel</button>
+    </div>
+  </div>  
 </body>
 </html>

@@ -70,10 +70,10 @@
   </div>
 
   <div class="tab-content" id="tab-content">
-    <!-- Tab content dynamically loaded here -->
   </div>
 
   <script>
+
     const urlParams = new URLSearchParams(window.location.search);
     const username = urlParams.get('username') || 'Guest';
     document.getElementById('welcome').textContent = `Welcome ${username}!`;
@@ -97,7 +97,98 @@
           .then(res => res.text())
           .then(html => {
             tabContent.innerHTML = html;
-          });
+            const changeEmailBtn = document.getElementById('change-email-btn');
+            const changePasswordBtn = document.getElementById('change-password-btn');
+            const changeEmailForm = document.getElementById('change-email-form');
+            const changePasswordForm = document.getElementById('change-password-form');
+            const submitEmailChangeBtn = document.getElementById('submit-email-change');
+            const submitPasswordChangeBtn = document.getElementById('submit-password-change');
+            const deleteAccountBtn = document.getElementById('delete-account-btn');
+            const deleteAccountForm = document.getElementById('delete-account-form');
+            const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+            const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+
+            changeEmailBtn.addEventListener('click', () => {
+              changePasswordBtn.disabled = true;
+              changeEmailBtn.style.display = 'none';
+              changeEmailForm.style.display = 'block';
+            });
+
+            changePasswordBtn.addEventListener('click', () => {
+              changeEmailBtn.disabled = true;
+              changePasswordBtn.style.display = 'none';
+              changePasswordForm.style.display = 'block';
+            });
+
+            deleteAccountBtn.addEventListener('click', () => {
+              deleteAccountForm.style.display = 'block';
+            });
+
+            confirmDeleteBtn.addEventListener('click', () => {
+              fetch('/delete_account/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: username }),
+              })
+              .then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                  alert('Account deleted successfully!');
+                  window.location.href = '/';
+                } else {
+                  alert('Error deleting account');}})})
+              
+            cancelDeleteBtn.addEventListener('click', () => {
+                deleteAccountForm.style.display = 'none';
+            });
+
+            submitEmailChangeBtn.addEventListener('click', () => {
+              const newEmail = document.getElementById('new-email').value;
+              fetch('/update_user_info/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: newEmail, user_id: username }),
+              })
+              .then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                  alert('Email updated successfully!');
+                  window.history.go(0);
+                  changeEmailForm.style.display = 'none';
+                  changeEmailBtn.style.display = 'block';
+                } else {
+                  alert('Error updating email');
+                }
+              })
+              .catch(error => console.error('Error:', error));
+            });
+
+            cancelDeleteBtn.addEventListener('click', () => {
+              deleteAccountForm.style.display = 'none';
+            });
+
+            submitPasswordChangeBtn.addEventListener('click', () => {
+              const newPassword = document.getElementById('new-password').value;
+              fetch('/update_user_info/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: newPassword, user_id: username }),
+              })
+              .then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                  alert('Password updated successfully!');
+                  window.history.go(0);
+                  changePasswordForm.style.display = 'none';
+                  changePasswordBtn.style.display = 'block';
+                } else {
+                  alert('Error updating password');
+                }
+              })
+              .catch(error => console.error('Error:', error));
+            });
+
+        });
       }
       else {
         const content = {

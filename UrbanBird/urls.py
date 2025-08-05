@@ -29,5 +29,7 @@ urlpatterns = [
     path('partial/stats-explorer/', views.stats_explorer_partial, name='stats_explorer_partial'),
     path('api/localities/', views.get_localities, name='get_localities'),
     path('user_info/', views.user_info, name='user_info'),
+    path('update_user_info/', views.update_user_info, name='update_user_info'),
+    path('delete_account/', views.delete_account, name='delete_account'),
 
 ]
