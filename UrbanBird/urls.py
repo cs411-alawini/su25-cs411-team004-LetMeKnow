@@ -31,7 +31,6 @@ urlpatterns = [
     path("api/sightings", views.get_sightings, name="get_sightings"),
     path('api/bird-stats', views.get_bird_stats, name='get_bird_stats'),
     path('api/add-sighting/', views.add_sighting, name='add_sighting'),  
-    
     path('user_info/', views.user_info, name='user_info'),
     path('update_user_info/', views.update_user_info, name='update_user_info'),
     path('delete_account/', views.delete_account, name='delete_account'),

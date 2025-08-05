@@ -116,7 +116,7 @@
             tabContent.innerHTML = html;
             populateLocalities();
           });
-      } else if (tabNum == 3){
+      } else if (tabNum == 3) {
         fetch('/user_info/?user_id=' + username)
           .then(res => res.text())
           .then(html => {
@@ -205,27 +205,27 @@
                   window.history.go(0);
                   changePasswordForm.style.display = 'none';
                   changePasswordBtn.style.display = 'block';
-                } 
-      else if (tabNum == 2){
-        tabContent.innerHTML = `
-      <div>
-        <h3>Add Bird Sighting</h3>
-        <form id="add-sighting-form" style="max-width:400px;margin:auto;">
-          <input type="text" id="species" class="input-field" placeholder="Species" required><br>
-          <input type="text" id="locality" class="input-field" placeholder="Locality" required><br>
-          <input type="number" step="any" id="latitude" class="input-field" placeholder="Latitude (-90 to 90)" required><br>
-          <input type="number" step="any" id="longitude" class="input-field" placeholder="Longitude (-180 to 180)" required><br>
-          <input type="date" id="event_date" class="input-field" required><br>
-          <input type="number" id="individual_count" class="input-field" placeholder="Number of Individuals" min="1" required><br>
-          <button type="submit" class="form-button">Submit Sighting</button>
-        </form>
-        <div id="add-sighting-result" style="margin-top: 20px;"></div>
-      </div>
-    `;
-    document.getElementById('add-sighting-form').onsubmit = addSighting;
+                }})})});
+      } else if (tabNum == 2){
+            tabContent.innerHTML = `
+          <div>
+            <h3>Add Bird Sighting</h3>
+            <form id="add-sighting-form" style="max-width:400px;margin:auto;">
+              <input type="text" id="species" class="input-field" placeholder="Species" required><br>
+              <input type="text" id="locality" class="input-field" placeholder="Locality" required><br>
+              <input type="number" step="any" id="latitude" class="input-field" placeholder="Latitude (-90 to 90)" required><br>
+              <input type="number" step="any" id="longitude" class="input-field" placeholder="Longitude (-180 to 180)" required><br>
+              <input type="date" id="event_date" class="input-field" required><br>
+              <input type="number" id="individual_count" class="input-field" placeholder="Number of Individuals" min="1" required><br>
+              <button type="submit" class="form-button">Submit Sighting</button>
+            </form>
+            <div id="add-sighting-result" style="margin-top: 20px;"></div>
+          </div>
+        `;
+        document.getElementById('add-sighting-form').onsubmit = addSighting;
       }
       else if (tabNum === 4){
-        {
+      
         tabContent.innerHTML = `
           <div style="display: flex; gap: 20px;">
             <div style="width: 250px; padding: 10px; background: #f0f4f8; border-radius: 12px;">
@@ -275,23 +275,10 @@
             })
             .catch(err => console.error("Failed to load localities:", err));
         }, 0);
-      }
-      }
-      else {
-                  alert('Error updating password');
-                }
-              })
-              .catch(error => console.error('Error:', error));
-            });
-
-        });
+      
       }
       else {
-        const content = {
-          2: "This is Tab 2 content.",
-          3: "This is Tab 3 content.",
-        };
-        tabContent.textContent = content[tabNum];
+        alert('Error updating password');
       }
     }
 function addSighting(event) {

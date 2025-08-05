@@ -4,7 +4,6 @@ from django.db import connection, transaction
 from django.views.decorators.csrf import csrf_exempt
 import json
 import random
-import requests
 
 
 GOOGLE_MAPS_API_KEY = 'AIzaSyCmlDRkxckPchGOXaYjCL6qcpcFCcle_94'
