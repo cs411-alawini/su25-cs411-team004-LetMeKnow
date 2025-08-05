@@ -59,16 +59,18 @@
   </style>
 </head>
 <body>
+
   <h1 id="welcome">Welcome!</h1>
 
   <div class="tabs">
-    <div class="tab" onclick="showTab(1)">Stats Explorer</div>
+    <div class="tab active" onclick="showTab(1)">Stats Explorer</div>
     <div class="tab" onclick="showTab(2)">Add Sighting</div>
     <div class="tab" onclick="showTab(3)">User Info</div>
-    <div class="tab active" onclick="showTab(4)">Map</div>
+    <div class="tab" onclick="showTab(4)">Map</div>
   </div>
 
-  <div class="tab-content" id="tab-content"></div>
+  <div class="tab-content" id="tab-content">
+  </div>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
@@ -83,145 +85,76 @@
       const tabContent = document.getElementById('tab-content');
 
       if (tabNum === 1) {
-        tabContent.innerHTML = `
-          <div>
-            <h3>Bird Stats Explorer</h3>
-            <label for="regionSelect"><strong>Select a locality:</strong></label>
-            <select id="regionSelect">
-              <option value="">-- Choose a locality --</option>
-              <option value="Anahuac National Wildlife Refuge (TX)">Anahuac National Wildlife Refuge (TX)</option>
-              <option value="Chicago">Chicago</option>
-              <option value="High Island">High Island</option>
-            </select>
-            <button onclick="fetchBirdStats()">Show Facts</button>
-            <div id="bird-stats-display" style="margin-top: 20px;"></div>
-          </div>
-        `;
-      } else if (tabNum === 4) {
-        tabContent.innerHTML = `
-          <div style="display: flex; gap: 20px;">
-            <div style="width: 250px; padding: 10px; background: #f0f4f8; border-radius: 12px;">
-              <h4>Filter Sightings</h4>
-
-              <label for="speciesInput"><strong>Search Species:</strong></label>
-              <input list="speciesList" id="speciesInput" placeholder="e.g., Blue Jay" style="width: 100%; margin-bottom: 10px;" />
-              <datalist id="speciesList">
-                <option value="Northern Cardinal">
-                <option value="American Robin">
-                <option value="Blue Jay">
-              </datalist>
-
-              <label for="localitySelect"><strong>Select Locality:</strong></label>
-              <select id="localitySelect" style="width: 100%; margin-bottom: 10px;">
-                <option value="">-- Any Locality --</option>
-              </select>
-
-              <label for="limitInput"><strong>Max Sightings:</strong></label>
-              <input type="number" id="limitInput" min="1" placeholder="e.g. 100" style="width: 100%; margin-bottom: 10px;">
-
-              <button onclick="filterMap()" style="width: 100%; margin-bottom: 10px;">Apply Filters</button>
-              <button onclick="initMap()" style="width: 100%; background-color: #e0e0e0;">Reset Filters</button>
-            </div>
-
-            <div style="flex-grow: 1;">
-              <h3>Birding Map</h3>
-              <p>Zoom / drag to explore hotspots.</p>
-              <div id="map" style="height: 450px; border-radius: 12px;"></div>
-            </div>
-          </div>
-        `;
-        // THIS IS WHERE I POPULATE THE "Select locality" BOX !!!
-        setTimeout(() => {
-          initMap();
-          fetch("/api/localities")
-            .then(res => res.json())
-            .then(data => {
-              const localitySelect = document.getElementById("localitySelect");
-              if (!localitySelect) return;
-              data.localities.forEach(loc => {
-                const opt = document.createElement("option");
-                opt.value = loc;
-                opt.textContent = loc;
-                localitySelect.appendChild(opt);
-              });
-            })
-            .catch(err => console.error("Failed to load localities:", err));
-        }, 0);
+        fetch('/partial/stats-explorer/')
+          .then(res => res.text())
+          .then(html => {
+            tabContent.innerHTML = html;
+            populateLocalities();
+          });
       } else {
-        tabContent.innerHTML = `<div style="text-align:center; padding: 50px;">Tab ${tabNum} content loading...</div>`;
+        const content = {
+          2: "This is Tab 2 content.",
+          3: "This is Tab 3 content.",
+          4: "This is Tab 4 content."
+        };
+        tabContent.textContent = content[tabNum];
       }
     }
 
-    // INITIALIZE THE MAP WITH FULL MARKERS
-    function initMap() {
-      const mapContainer = document.getElementById("map");
-      if (!mapContainer) return;
+    function fetchSpeciesOverlap() {
+      const locA = document.getElementById('overlapLocA').value;
+      const locB = document.getElementById('overlapLocB').value;
+      const displayDiv = document.getElementById('species-overlap-display');
 
-      window.map = new google.maps.Map(mapContainer, {
-        center: { lat: 31.9686, lng: -99.9018 },
-        zoom: 5.5,
-      });
-      window.mapMarkers = [];
-
-      fetch("/api/sightings")
-        .then(res => res.json())
-        .then(data => placeMarkers(data.sightings))
-        .catch(err => console.error("Initial map load failed:", err));
-    }
-
-    // FIND THE LOCATION OF MARKERS AND PLACE THEM
-    function placeMarkers(sightings) {
-      const infoWindow = new google.maps.InfoWindow();
-
-      if (window.mapMarkers && Array.isArray(window.mapMarkers)) {
-        window.mapMarkers.forEach(m => m.setMap(null));
+      if (!locA || !locB) {
+        displayDiv.innerHTML = `<p style="color:red;">Please select both locations.</p>`;
+        return;
       }
-      window.mapMarkers = [];
 
-      sightings.forEach(point => {
-        const lat = parseFloat(point.latitude);
-        const lng = parseFloat(point.longitude);
-        if (isNaN(lat) || isNaN(lng)) return;
+      fetch(`/api/species-overlap?locA=${encodeURIComponent(locA)}&locB=${encodeURIComponent(locB)}`)
+        .then(res => res.json())
+        .then(data => {
+          let speciesListHTML = "<ul>";
+          data.species.forEach(species => {
+            speciesListHTML += `<li>${species}</li>`;
+          });
+          speciesListHTML += "</ul>";
 
-        const marker = new google.maps.Marker({
-          position: { lat, lng },
-          map: window.map,
+          displayDiv.innerHTML = `
+            <h4>Overlapping Species</h4>
+            <p><strong>Overlap count:</strong> ${data.count}</p>
+            ${speciesListHTML}
+          `;
+        })
+        .catch(err => {
+          displayDiv.innerHTML = `<p style="color:red;">Failed to fetch overlap info.</p>`;
         });
-        window.mapMarkers.push(marker);
-
-        marker.addListener("click", () => {
-          const content = `
-            <div>
-              <strong>Common name:</strong> ${point.bird_name}<br/>
-              <strong>Taxonomic name:</strong> ${point.species_id}<br/>
-              <strong>Order:</strong> ${point.order_name}<br/>
-              <strong>Rarity:</strong> ${point.rarity_label}<br/>
-              <strong>Locality:</strong> ${point.locality}<br/>
-              <strong>Lat:</strong> ${lat.toFixed(4)}<br/>
-              <strong>Lng:</strong> ${lng.toFixed(4)}
-            </div>`;
-          infoWindow.setContent(content);
-          infoWindow.open(window.map, marker);
-        });
-      });
     }
 
-    // FILTER MARKERS
-    // PRETTY SELF EXPLANITORY
-    function filterMap() {
-      const species = document.getElementById("speciesInput").value;
-      const locality = document.getElementById("localitySelect").value;
-      const limit = document.getElementById("limitInput").value;
-
-      const params = new URLSearchParams();
-      if (species) params.append("species", species);
-      if (locality) params.append("locality", locality);
-      if (limit) params.append("limit", limit);
-
-      fetch("/api/sightings?" + params.toString())
+    function populateLocalities() {
+      fetch('/api/localities/')
         .then(res => res.json())
-        .then(data => placeMarkers(data.sightings))
-        .catch(err => console.error("Filter failed:", err));
+        .then(data => {
+          const localities = data.localities || [];
+          const selects = [
+            document.getElementById('regionSelect'),
+            document.getElementById('overlapLocA'),
+            document.getElementById('overlapLocB')
+          ];
+
+          selects.forEach(select => {
+            select.innerHTML = '<option value="">-- Choose a locality --</option>';
+            localities.forEach(loc => {
+              const option = document.createElement('option');
+              option.value = loc;
+              option.textContent = loc;
+              select.appendChild(option);
+            });
+          });
+        })
+        .catch(err => {
+          console.error('Failed to fetch localities:', err);
+        });
     }
 
     function fetchBirdStats() {
@@ -246,12 +179,10 @@
           displayDiv.innerHTML = `<p style="color:red;">Failed to fetch stats.</p>`;
         });
     }
-
-    window.onload = () => showTab(1);
+    document.addEventListener("DOMContentLoaded", () => {
+      showTab(1);
+    });
   </script>
 
-  <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCmlDRkxckPchGOXaYjCL6qcpcFCcle_94">
-  </script>
 </body>
 </html>
