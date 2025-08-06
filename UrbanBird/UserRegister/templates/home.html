@@ -258,7 +258,6 @@
             </div>
           </div>
         `;
-        // THIS IS WHERE I POPULATE THE "Select locality" BOX !!!
         setTimeout(() => {
           initMap();
           fetch("/api/localities")
@@ -379,8 +378,7 @@ function placeMarkers(sightings) {
       });
     }
 
-    // FILTER MARKERS
-    // PRETTY SELF EXPLANITORY
+
     function filterMap() {
       const species = document.getElementById("speciesInput").value;
       const locality = document.getElementById("localitySelect").value;
@@ -426,6 +424,41 @@ function placeMarkers(sightings) {
           displayDiv.innerHTML = `<p style="color:red;">Failed to fetch overlap info.</p>`;
         });
     }
+
+    function fetchBirdsByRarity() {
+      const rarity = document.getElementById("raritySelect").value;
+
+      fetch(`/get_birds_by_rarity?rarity=${rarity}`)
+        .then(response => response.json())
+        .then(data => {
+          const display = document.getElementById("rarity-birds-display");
+          display.innerHTML = "";
+
+          if (data.error) {
+            display.innerHTML = `<p style="color:red;">Error: ${data.error}</p>`;
+            return;
+          }
+
+          if (data.birds.length === 0) {
+            display.innerHTML = "<p>No birds found for this rarity level.</p>";
+            return;
+          }
+
+          const list = document.createElement("ul");
+          data.birds.forEach(bird => {
+            const item = document.createElement("li");
+            item.textContent = `${bird.species_id} - ${bird.common_name}`;
+            list.appendChild(item);
+          });
+
+          display.appendChild(list);
+        })
+        .catch(err => {
+          document.getElementById("rarity-birds-display").innerHTML =
+            `<p style="color:red;">Fetch failed: ${err}</p>`;
+        });
+    }
+
 
     function populateLocalities() {
       fetch('/api/localities/')

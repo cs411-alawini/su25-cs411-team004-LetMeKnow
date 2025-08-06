@@ -111,7 +111,35 @@ def get_species_overlap(request):
 
     except Exception as e:
         return HttpResponse(f"Error fetching overlap data: {str(e)}", status=500)
-    
+
+# SQL QUERY TO GET BIRD RARITY FROM GDC
+def get_birds_by_rarity(request):
+    try:
+        rarity = request.GET.get('rarity')
+        if not rarity or not rarity.isdigit():
+            return JsonResponse({'error': 'Most likely missing rarity parameter'}, status=400)
+
+        rarity = int(rarity)
+        if rarity < 1 or rarity > 5:
+            return JsonResponse({'error': 'Rarity must be an integer between 1 and 5 !'}, status=400)
+
+        cursor = connection.cursor()
+        cursor.execute("""
+            SELECT Tax.species_id, Tax.common_name
+            FROM UrbanBird.RARITY Rar
+            JOIN UrbanBird.TAXON Tax ON Rar.rarity_id = Tax.rarity_id
+            WHERE Rar.rarity_id = %s
+            LIMIT 10
+        """, [rarity])
+        rows = cursor.fetchall()
+
+        birds = [{'species_id': row[0], 'common_name': row[1]} for row in rows]
+        return JsonResponse({'birds': birds}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 def get_bird_stats(request):
     region = request.GET.get("region", "")
     if not region:

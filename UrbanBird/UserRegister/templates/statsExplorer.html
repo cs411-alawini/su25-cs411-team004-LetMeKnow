@@ -30,3 +30,22 @@
 
   <div id="species-overlap-display" style="margin-top: 20px;"></div>
 </div>
+
+<hr style="margin: 40px 0;">
+
+<h4>First 10 Birds by Level of Rarity</h4>
+
+<div style="margin-bottom: 10px;">
+  <label for="raritySelect"><strong>Please, select Rarity Level (1 - 5):</strong></label><br>
+  <select id="raritySelect" style="margin-top: 5px; padding: 5px;">
+    <option value="1">1 (Common)</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5 (Very Rare)</option>
+  </select>
+  <button onclick="fetchBirdsByRarity()" style="margin-left: 10px; padding: 6px 12px;">Show Birds</button>
+</div>
+
+<div id="rarity-birds-display" style="margin-top: 20px;"></div>
+
