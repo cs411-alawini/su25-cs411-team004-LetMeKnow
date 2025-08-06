@@ -258,7 +258,6 @@
             </div>
           </div>
         `;
-        // THIS IS WHERE I POPULATE THE "Select locality" BOX !!!
         setTimeout(() => {
           initMap();
           fetch("/api/localities")
@@ -379,8 +378,7 @@ function placeMarkers(sightings) {
       });
     }
 
-    // FILTER MARKERS
-    // PRETTY SELF EXPLANITORY
+
     function filterMap() {
       const species = document.getElementById("speciesInput").value;
       const locality = document.getElementById("localitySelect").value;
@@ -427,7 +425,6 @@ function placeMarkers(sightings) {
         });
     }
 
-    // FUNCTION FOR FINDING BOIRD RARITY - ON STATSEXPLORER
     function fetchBirdsByRarity() {
       const rarity = document.getElementById("raritySelect").value;
 
